@@ -204,6 +204,7 @@ class Search extends SearchEngine {
 
 			// Sort by score/relevance if available
 			$query->setOption( SMWQuery::SCORE_SORT, 'desc' );
+			$query->setOption( 'is.special_search', true );
 
 			$result = $store->getQueryResult( $query );
 

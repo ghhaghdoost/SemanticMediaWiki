@@ -16,6 +16,7 @@ use SMW\PermissionPthValidator;
 use SMW\SQLStore\QueryDependencyLinksStoreFactory;
 use SMW\Site;
 use SMW\Setup;
+use SMW\Options;
 
 /**
  * @license GNU GPL v2+
@@ -256,6 +257,7 @@ class HookRegistry {
 			'ExtensionTypes' => 'newExtensionTypes',
 			'SpecialSearchResultsPrepend' => 'newSpecialSearchResultsPrepend',
 			'SpecialStatsAddExtra' => 'newSpecialStatsAddExtra',
+			'SoftwareInfo' => 'newSoftwareInfo',
 
 			'BlockIpComplete' => 'newBlockIpComplete',
 			'UnblockUserComplete' => 'newUnblockUserComplete',
@@ -931,11 +933,54 @@ class HookRegistry {
 		return true;
 	}
 
+	/**
+	 * @see https://www.mediawiki.org/wiki/Manual:Hooks/SoftwareInfo
+	 */
+	public function newSoftwareInfo( &$software ) {
+
+		$connection = $this->applicationFactory->getStore()->getConnection( 'elastic' );
+
+		$info = $connection->getSoftwareInfo();
+
+		if ( !isset( $software[$info['component']] ) && $info['version'] !== null ) {
+			$software[$info['component']] = $info['version'];
+		}
+
+		return true;
+	}
+
 	private function registerHooksForInternalUse( ApplicationFactory $applicationFactory, DeferredRequestDispatchManager $deferredRequestDispatchManager ) {
 
 		$queryDependencyLinksStore = $this->queryDependencyLinksStoreFactory->newQueryDependencyLinksStore(
 			$applicationFactory->getStore()
 		);
+
+		$elasticFactory = new \SMW\Elastic\ElasticFactory();
+		$indexer = $elasticFactory->newIndexer( $applicationFactory->getStore() );
+
+		/**
+		 * @see https://www.semantic-mediawiki.org/wiki/Hooks#SMW::SQLStore::EntityReferenceCleanUpComplete
+		 */
+		$this->handlers['SMW::SQLStore::EntityReferenceCleanUpComplete'] = function ( $store, $id, $subject, $isRedirect ) use ( $indexer ) {
+
+			$indexer->setOrigin( 'EntityReferenceCleanUpComplete' );
+			$indexer->delete( [ $id ] );
+
+			return true;
+		};
+
+		/**
+		 * @see https://www.semantic-mediawiki.org/wiki/Hooks#SMW::Admin::TaskHandlerFactory
+		 */
+		$this->handlers['SMW::Admin::TaskHandlerFactory'] = function ( &$taskHandlers, $store, $outputFormatter, $user ) use ( $elasticFactory ) {
+
+			$taskHandlers[] = $elasticFactory->newInfoTaskHandler(
+				$store,
+				$outputFormatter
+			);
+
+			return true;
+		};
 
 		/**
 		 * @see https://www.semantic-mediawiki.org/wiki/Hooks#SMW::SQLStore::AfterDataUpdateComplete
@@ -983,7 +1028,13 @@ class HookRegistry {
 		 */
 		$this->handlers['SMW::Store::BeforeQueryResultLookupComplete'] = function ( $store, $query, &$result, $queryEngine ) use ( $applicationFactory ) {
 
-			$cachedQueryResultPrefetcher = $applicationFactory->singleton( 'CachedQueryResultPrefetcher' );
+			if ( $applicationFactory->getSettings()->get( 'smwgQueryResultCacheType' ) === false ) {
+				return true;
+			}
+
+			$cachedQueryResultPrefetcher = $applicationFactory->singleton(
+				'CachedQueryResultPrefetcher'
+			);
 
 			$cachedQueryResultPrefetcher->setQueryEngine(
 				$queryEngine
@@ -993,7 +1044,9 @@ class HookRegistry {
 				return true;
 			}
 
-			$result = $cachedQueryResultPrefetcher->getQueryResult( $query );
+			$result = $cachedQueryResultPrefetcher->getQueryResult(
+				$query
+			);
 
 			return false;
 		};

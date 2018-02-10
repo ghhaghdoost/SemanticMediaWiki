@@ -48,7 +48,7 @@ class ScoreSetTest extends \PHPUnit_Framework_TestCase {
 		$instance->addScore( $dataItem, 10 );
 
 		$this->assertEquals(
-		10,
+			10,
 			$instance->getScore( $dataItem )
 		);
 	}
