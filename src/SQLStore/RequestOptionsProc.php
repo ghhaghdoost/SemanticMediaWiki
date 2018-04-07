@@ -48,6 +48,10 @@ class RequestOptionsProc {
 			$sqlConds['ORDER BY'] = $requestOptions->ascending ? $valueCol : $valueCol . ' DESC';
 		}
 
+		if ( $requestOptions->group !== false ) {
+			$sqlConds['GROUP BY'] = $requestOptions->group;
+		}
+
 		// Avoid a possible filesort (likely caused by ORDER BY) when limit is
 		// less than 2
 		if ( $requestOptions->limit < 2 ) {

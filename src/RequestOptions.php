@@ -73,6 +73,11 @@ class RequestOptions {
 	private $extraConditions = array();
 
 	/**
+	 * Should the result be grouped?
+	 */
+	public $group = false;
+
+	/**
 	 * @since 1.0
 	 *
 	 * @param string $string to match
@@ -170,7 +175,8 @@ class RequestOptions {
 			$this->boundary,
 			$this->include_boundary,
 			$stringConditions,
-			$this->extraConditions
+			$this->extraConditions,
+			$this->group,
 		) );
 	}
 
