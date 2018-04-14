@@ -188,6 +188,8 @@ class Search extends SearchEngine {
 
 		if ( $query !== null ) {
 
+			$this->findNamespaces();
+
 			$namespacesDisjunction = new Disjunction(
 				array_map( function ( $ns ) {
 					return new NamespaceDescription( $ns );
@@ -202,9 +204,7 @@ class Search extends SearchEngine {
 
 			$store = ApplicationFactory::getInstance()->getStore();
 
-			// Sort by score/relevance if available
-			$query->setOption( SMWQuery::SCORE_SORT, 'desc' );
-
+			$this->findSortPreference( $query );
 			$result = $store->getQueryResult( $query );
 
 			$query->querymode = SMWQuery::MODE_COUNT;
@@ -340,6 +340,35 @@ class Search extends SearchEngine {
 		return $this->showSuggestion;
 	}
 
+	/**
+	 * @return []
+	 */
+	public function findNamespaces() {
+
+		$searchableNamespaces = $this->searchableNamespaces();
+
+		$this->namespaces = [];
+
+		foreach ( $searchableNamespaces as $ns => $name ) {
+			if ( $GLOBALS['wgRequest']->getCheck( 'ns' . $ns ) ) {
+				$this->namespaces[] = $ns;
+			}
+		}
+	}
+
+	public function findSortPreference( $query ) {
+
+		$sort = $GLOBALS['wgRequest']->getVal( 'sort' );
+
+		if ( $sort === 'recent') {
+			$query->setSortKeys( [ '_MDAT' => 'desc' ] );
+		} elseif ( $sort === 'title') {
+			$query->setSortKeys( [ '' => 'asc' ] );
+		} else {
+			// Sort by score/relevance if available
+			$query->setOption( SMWQuery::SCORE_SORT, 'desc' );
+		}
+	}
 
 	public function setLimitOffset( $limit, $offset = 0 ) {
 		parent::setLimitOffset( $limit, $offset );

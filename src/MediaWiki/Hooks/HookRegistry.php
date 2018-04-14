@@ -254,8 +254,10 @@ class HookRegistry {
 			'LoadExtensionSchemaUpdates' => 'newLoadExtensionSchemaUpdates',
 
 			'ExtensionTypes' => 'newExtensionTypes',
-			'SpecialSearchResultsPrepend' => 'newSpecialSearchResultsPrepend',
 			'SpecialStatsAddExtra' => 'newSpecialStatsAddExtra',
+			'SpecialSearchResultsPrepend' => 'newSpecialSearchResultsPrepend',
+			'SpecialSearchProfileForm' => 'newSpecialSearchProfileForm',
+			'SpecialSearchProfiles' => 'newSpecialSearchProfiles',
 
 			'BlockIpComplete' => 'newBlockIpComplete',
 			'UnblockUserComplete' => 'newUnblockUserComplete',
@@ -414,6 +416,40 @@ class HookRegistry {
 		);
 
 		return $specialSearchResultsPrepend->process( $term );
+	}
+
+	/**
+	 * @see https://www.mediawiki.org/wiki/Manual:Hooks/SpecialSearchProfiles
+	 */
+	public function newSpecialSearchProfiles( array &$profiles ) {
+
+		\SMW\MediaWiki\Search\SearchProfile::addProfile(
+			$profiles
+		);
+
+		return true;
+	}
+
+	/**
+	 * @see https://www.mediawiki.org/wiki/Manual:Hooks/SpecialSearchProfileForm
+	 */
+	public function newSpecialSearchProfileForm( $specialSearch, &$form, $profile, $term, $opts ) {
+
+		if ( $profile !== \SMW\MediaWiki\Search\SearchProfile::PROFILE_NAME ) {
+			return true;
+		}
+
+		$searchProfile = new \SMW\MediaWiki\Search\SearchProfile(
+			$specialSearch
+		);
+
+		$searchProfile ->setSearchableNamespaces(
+			\MediaWiki\MediaWikiServices::getInstance()->getSearchEngineConfig()->searchableNamespaces()
+		);
+
+		$searchProfile->getForm( $form, $opts );
+
+		return false;
 	}
 
 	/**

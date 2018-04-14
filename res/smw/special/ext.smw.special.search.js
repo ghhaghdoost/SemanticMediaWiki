@@ -68,6 +68,23 @@
 	// https://www.semantic-mediawiki.org/wiki/Help:SMWSearch
 	if ( mw.config.get( 'wgCanonicalSpecialPageName' ) == 'Search' && mw.config.get( 'wgSearchType' ) == 'SMWSearch' ) {
 		load( search );
+
+		// Copied from mediawiki.special.search.js in order
+		// to have the NS button to work without #powersearch
+		var $checkboxes = $( '#search input[id^=mw-search-ns]' );
+
+		$( document ).on( "click", "#mw-search-toggleall", function(){
+			$checkboxes.prop( 'checked', true );
+		} );
+
+		$( document ).on( "click", "#mw-search-togglenone", function(){
+			$checkboxes.prop( 'checked', false );
+		} );
+
+		// When saving settings, use the proper request method (POST instead of GET).
+		$( document ).on( "change", "#mw-search-powersearch-remember", function() {
+			this.form.method = this.checked ? 'post' : 'get';
+		} ).trigger( 'change' );
 	};
 
 } )( jQuery, mediaWiki );
